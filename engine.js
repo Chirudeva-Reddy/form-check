@@ -91,7 +91,7 @@ export function pickPerson(poses, prevCentre = null) {
 export const EXERCISES = {
   squat: {
     joint: knee, name: 'Squat', views: ['side'], joints: ['shoulder', 'hip', 'knee', 'ankle'], pick: 'best',
-    setup: 'Stand side-on, 2–3 m from the camera, phone at hip height, whole body in frame.',
+    setup: 'Stand side-on, 2-3 m from the camera, phone at hip height, whole body in frame.',
     signal: (p, [s]) => knee(p, s), rest: 170, peak: 70, partialCue: 'Squat deeper', // hips at knee level ≈ 60–70° at the knee
     checks: [
       { cue: 'Get your hips down to knee level', test: ({ peak: { p, sides: [s] } }) => J(p, s, 'hip').y >= J(p, s, 'knee').y - 0.1 * dist(J(p, s, 'hip'), J(p, s, 'knee')) },
@@ -100,7 +100,7 @@ export const EXERCISES = {
   },
   lunge: {
     joint: knee, name: 'Lunge', views: ['side'], joints: ['hip', 'knee', 'ankle'], pick: 'all',
-    setup: 'Stand side-on, 2–3 m from the camera, phone at hip height, whole body in frame.',
+    setup: 'Stand side-on, 2-3 m from the camera, phone at hip height, whole body in frame.',
     signal: (p, sides) => Math.min(...sides.map((s) => knee(p, s))), rest: 170, peak: 90, partialCue: 'Lunge deeper',
     checks: [
       { cue: 'Drop your back knee closer to the floor', test: ({ peak }) => peak.sig <= 105 },
@@ -110,7 +110,7 @@ export const EXERCISES = {
   deadlift: {
     // Each rep starts on the floor, so the floor is the start position and a rep ends when the bar is back down.
     joint: hipHinge, liftFirst: true, name: 'Deadlift', views: ['side'], joints: ['shoulder', 'hip', 'knee', 'ankle'], pick: 'best',
-    setup: 'Stand side-on, 2–3 m from the camera, phone at hip height, whole body and the bar in frame. Start with the bar on the floor.',
+    setup: 'Stand side-on, 2-3 m from the camera, phone at hip height, whole body and the bar in frame. Start with the bar on the floor.',
     signal: (p, [s]) => hipHinge(p, s), rest: 85, peak: 170, partialCue: 'Stand all the way up',
     checks: [
       { cue: 'Lock out at the top: hips through, stand tall', test: ({ peak }) => peak.sig >= 163 },
@@ -119,7 +119,7 @@ export const EXERCISES = {
   },
   rdl: {
     joint: hipHinge, name: 'Romanian deadlift', views: ['side'], joints: ['shoulder', 'hip', 'knee', 'ankle'], pick: 'best',
-    setup: 'Stand side-on, 2–3 m from the camera, phone at hip height, whole body in frame. Start standing tall.',
+    setup: 'Stand side-on, 2-3 m from the camera, phone at hip height, whole body in frame. Start standing tall.',
     signal: (p, [s]) => hipHinge(p, s), rest: 170, peak: 95, partialCue: 'Hinge further: push your hips back',
     checks: [
       { cue: 'Keep your knees soft but still: push your hips back instead', test: ({ peak: { p, sides: [s] } }) => knee(p, s) >= 140 },
@@ -128,7 +128,7 @@ export const EXERCISES = {
   },
   row: {
     joint: elbow, liftFirst: true, name: 'Bent-over row', views: ['side'], joints: ['shoulder', 'elbow', 'wrist', 'hip'], pick: 'best',
-    setup: 'Side-on, 2–3 m from the camera, phone at hip height, whole body in frame. Hinge forward and let the weight hang.',
+    setup: 'Side-on, 2-3 m from the camera, phone at hip height, whole body in frame. Hinge forward and let the weight hang.',
     signal: (p, [s]) => elbow(p, s), rest: 165, peak: 75, partialCue: 'Pull all the way to your body',
     checks: [
       { cue: 'Pull your elbow past your body', test: ({ peak }) => peak.sig <= 90 },
@@ -150,29 +150,29 @@ export const EXERCISES = {
   },
   curl: {
     joint: elbow, liftFirst: true, name: 'Bicep curl', views: ['front', 'side'], joints: ['shoulder', 'elbow', 'wrist', 'hip'], pick: 'all',
-    setup: 'Face the camera or stand side-on, 2–3 m away, hips to head in frame.',
+    setup: 'Face the camera or stand side-on, 2-3 m away, hips to head in frame.',
     signal: (p, sides) => Math.min(...sides.map((s) => elbow(p, s))), rest: 160, peak: 50, partialCue: 'Curl all the way up',
     checks: [
       { cue: 'Squeeze all the way to the top', test: ({ peak }) => peak.sig <= 60 },
       { cue: 'Lower the weight all the way down', test: ({ rest }) => rest >= 145 },
       { cue: 'Keep your elbows by your sides', test: ({ frames }) => Math.max(...frames.flatMap((f) => f.sides.map((s) => armRaise(f.p, s)))) <= 35 },
-      { cue: "Don't swing — keep your body still", views: ['side'], test: ({ frames }) => spread(frames.map((f) => torsoLean(f.p))) <= 12 },
+      { cue: "Don't swing, keep your body still", views: ['side'], test: ({ frames }) => spread(frames.map((f) => torsoLean(f.p))) <= 12 },
     ],
   },
   press: {
     joint: elbow, liftFirst: true, name: 'Shoulder press', views: ['front', 'side'], joints: ['shoulder', 'elbow', 'wrist'], pick: 'all',
-    setup: 'Face the camera, 2–3 m away, hips to above your hands in frame.',
+    setup: 'Face the camera, 2-3 m away, hips to above your hands in frame.',
     signal: (p, sides) => Math.min(...sides.map((s) => elbow(p, s))), rest: 85, peak: 165, partialCue: 'Press all the way up',
     checks: [
       { cue: 'Lock out overhead', test: ({ peak }) => peak.sig >= 155 && peak.sides.every((s) => J(peak.p, s, 'wrist').y < peak.p[NOSE].y) },
       { cue: 'Bring the weights down to shoulder height', test: ({ rest }) => rest <= 100 },
       { cue: 'Press both arms evenly', views: ['front'], test: ({ peak: { p, sides } }) => sides.length < 2 || Math.abs(J(p, 'left', 'wrist').y - J(p, 'right', 'wrist').y) <= 0.12 * torsoLen(p) },
-      { cue: "Brace — don't lean back", views: ['side'], test: ({ frames }) => spread(frames.map((f) => torsoLean(f.p))) <= 15 },
+      { cue: "Brace, don't lean back", views: ['side'], test: ({ frames }) => spread(frames.map((f) => torsoLean(f.p))) <= 15 },
     ],
   },
   raise: {
     joint: armRaise, liftFirst: true, name: 'Lateral raise', views: ['front'], joints: ['shoulder', 'elbow', 'hip'], pick: 'all',
-    setup: 'Face the camera, 2–3 m away, hips to above your hands in frame.',
+    setup: 'Face the camera, 2-3 m away, hips to above your hands in frame.',
     signal: (p, sides) => mean(sides.map((s) => armRaise(p, s))), rest: 15, peak: 85, partialCue: 'Raise your arms to shoulder height',
     checks: [
       { cue: 'Raise to shoulder height', test: ({ peak }) => peak.sig >= 75 },
@@ -282,7 +282,7 @@ export function createSession(ex) {
       return { x: f[0].filter(l.x, t), y: f[1].filter(l.y, t), v: l.v };
     });
     out.person = prevP = p;
-    if (chosen.crowded) out.status = 'More than one person in view — tracking the closest';
+    if (chosen.crowded) out.status = 'More than one person in view. Tracking the closest one';
 
     const r = Math.abs(p[11].x - p[12].x) / (torsoLen(p) || 1);
     ratio = ratio === null ? r : ratio + ease(300) * (r - ratio);

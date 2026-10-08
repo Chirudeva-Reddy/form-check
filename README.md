@@ -2,7 +2,7 @@
 
 **Try it live:** https://chirudeva-reddy.github.io/form-check/
 
-Prop up your phone, pick an exercise and lift. The page counts your reps, draws your skeleton and speaks short form cues after each rep. You can also analyze a video you already recorded.
+Prop up your phone, pick an exercise and lift. The page counts your reps, draws your skeleton and speaks short form cues after each rep. A dashboard breaks down each rep: the joint-angle curve, end range, range of motion, lowering and lifting time, lift speed against your best rep, and torso lean or the left/right gap. You can also analyze a video you already recorded.
 
 Everything runs in your browser. The camera feed and your videos never leave your device; the page only downloads the pose model and the MediaPipe library.
 
@@ -33,6 +33,7 @@ Film from 2–3 m away with your whole body in frame. If the camera can't see wh
 5. **Gate:** it checks the camera angle (from shoulder width compared with torso length) and joint visibility, and doesn't count frames it can't trust. Side-on lifts keep reading the same side of your body unless the other side becomes clearly more visible. Timing is measured in milliseconds, so a 15 fps upload and a 30 fps camera behave the same.
 6. **Count:** each exercise tracks one joint angle (knee, elbow or shoulder). A rep runs from the start position to the far end and back. Two thresholds, an earlier one to start a rep and a later one to finish it, stop jitter from double-counting. The start position calibrates itself to your body from the first frames.
 7. **Judge:** fixed rules on the finished rep, for example "hip at or below knee height at the bottom". There's no AI guessing; every cue comes from a measured angle or position.
+8. **Measure:** each rep also gets timing, speed and symmetry numbers for the dashboard. The page explains each one and links the studies behind it. Lift speed is a joint-angle speed, not bar speed, so it only means something compared with your own reps.
 
 All the logic lives in [`engine.js`](engine.js). Adding an exercise means adding one recipe: the joints it needs, the camera views it allows, the tracked angle and its start and end values, and a list of checks.
 
