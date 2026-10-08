@@ -1,0 +1,6 @@
+# local-only: private research notes, prompts, dev tooling, test clips
+ULTRACODE_PROMPT.md
+docs/
+.claude/
+_test/
+.DS_Store
