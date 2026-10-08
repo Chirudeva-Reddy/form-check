@@ -14,16 +14,18 @@ function pose(points, vis = 0.95) {
 }
 
 // Side view, facing +x. Shin tilts forward up to 30°, the thigh takes the rest of the knee bend.
-function side({ knee = 175, lean = 5, ankleVis }) {
-  const a = Math.min(30, (180 - knee) / 2), b = 180 - knee - a;
+// Arms hang straight down; `elbow` < 180 rows the upper arm back with the forearm still hanging.
+function side({ knee = 175, lean = 5, elbow = 180, ankleVis }) {
+  const a = Math.min(30, (180 - knee) / 2), b = 180 - knee - a, u = rad(180 - elbow);
   const A = { x: 0.5, y: 0.9 };
   const K = add(A, { x: Math.sin(rad(a)), y: -Math.cos(rad(a)) }, 0.22);
   const Hp = add(K, { x: -Math.sin(rad(b)), y: -Math.cos(rad(b)) }, 0.22);
   const S = add(Hp, { x: Math.sin(rad(lean)), y: -Math.cos(rad(lean)) }, 0.28);
+  const E = add(S, { x: -Math.sin(u), y: Math.cos(u) }, 0.13);
   const pts = [[0, add(S, { x: 0.03, y: -0.08 })]];
   for (const [o, dx] of [[0, 0], [1, 0.01]]) {
     const sh = { x: dx, y: 0 };
-    pts.push([11 + o, add(S, sh)], [13 + o, add(S, { x: dx, y: 0.13 })], [15 + o, add(S, { x: dx, y: 0.26 })],
+    pts.push([11 + o, add(S, sh)], [13 + o, add(E, sh)], [15 + o, add(E, { x: dx, y: 0.13 })],
       [23 + o, add(Hp, sh)], [25 + o, add(K, sh)], [27 + o, add(A, sh), ankleVis]);
   }
   return pose(pts);
@@ -189,8 +191,73 @@ test('lateral raise: clean, too low (partial), too high', () => {
   assert.ok(issues(run('raise', raise(120), 9).events).includes('Stop at shoulder height'));
 });
 
+test('deadlift: starts on the floor, every rep counts, squatting it is flagged', () => {
+  // s: 0 = bar on the floor (hinged), 1 = locked out
+  const lift = (floorKnee) => (t) => { const s = cycle(t, 0, 1, 4, 3); return side({ knee: floorKnee + (175 - floorKnee) * s, lean: 3 + 72 * (1 - s) }); };
+  const ok = run('deadlift', lift(120), 15);
+  assert.equal(ok.counted.length, 4);
+  assert.deepEqual(issues(ok.events), []);
+  const squatty = run('deadlift', lift(85), 15);
+  assert.ok(issues(squatty.events).includes("Hips too low: push them back, don't squat the bar up"));
+  // stops short of lockout (80% of the way up): still a rep, but cued
+  const short = run('deadlift', (t) => { const s = 0.8 * cycle(t, 0, 1, 3, 3); return side({ knee: 120 + 55 * s, lean: 3 + 72 * (1 - s) }); }, 12);
+  assert.equal(short.counted.length, 3);
+  assert.ok(issues(short.events).includes('Lock out at the top: hips through, stand tall'));
+});
+
+test('RDL: clean reps; bending the knees instead of hinging is flagged', () => {
+  const rdl = (bottomKnee) => (t) => { const s = cycle(t, 0, 1, 3); return side({ knee: 172 - (172 - bottomKnee) * s, lean: 3 + 80 * s }); };
+  const ok = run('rdl', rdl(160), 9);
+  assert.equal(ok.counted.length, 3);
+  assert.deepEqual(issues(ok.events), []);
+  assert.ok(issues(run('rdl', rdl(115), 9).events).includes('Keep your knees soft but still: push your hips back instead'));
+});
+
+test('row: clean reps; standing too upright is flagged', () => {
+  const ok = run('row', (t) => side({ lean: 45, elbow: cycle(t, 168, 70, 4) }), 11);
+  assert.equal(ok.counted.length, 4);
+  assert.deepEqual(issues(ok.events), []);
+  const upright = run('row', (t) => side({ lean: 12, elbow: cycle(t, 168, 70, 4) }), 11);
+  assert.ok(issues(upright.events).includes('Hinge forward more: chest toward the floor'));
+});
+
+test('a one-frame landmark glitch does not break counting or add cues', () => {
+  // Shoulders teleport sideways for one frame mid-rep: without glitch rejection the lunge's
+  // max-torso-lean check would see a ~60° lean and wrongly cue "Keep your torso upright".
+  const glitchy = (t) => {
+    const p = side({ knee: cycle(t, 175, 95, 3) });
+    if (Math.round(t * 30) % 60 === 0 && t > 1) for (const i of [11, 12]) p[i] = { ...p[i], x: p[i].x + 0.25 };
+    return p;
+  };
+  const r = run('lunge', glitchy, 9);
+  assert.equal(r.counted.length, 3);
+  assert.deepEqual(issues(r.events), []);
+});
+
+test('tracking stays on the lifter when a bigger person walks in', () => {
+  const me = side({});
+  const s = createSession(EXERCISES.squat);
+  s.update([me], 0, 1000, 1000);
+  const bigger = me.map((l) => ({ ...l, x: 0.2 + (l.x - 0.5) * 1.3, y: 0.5 + (l.y - 0.5) * 1.3 }));
+  const out = s.update([bigger, me], 33, 1000, 1000);
+  assert.ok(Math.abs(out.person[23].x - me[23].x * 1000) < 2);
+  assert.match(out.status, /More than one person/);
+});
+
 test('timestamps must increase', () => {
   const s = createSession(EXERCISES.squat);
   assert.ok(s.update([side({})], 100, 1000, 1000));
   assert.equal(s.update([side({})], 100, 1000, 1000), null);
+});
+
+test('per-rep metrics: phase times, travel, speed and left/right gap', () => {
+  const { counted } = run('squat', (t) => side({ knee: cycle(t, 175, 62, 3) }), 9);
+  const m = counted[1].metrics;
+  assert.ok(Math.abs(m.lower - m.lift) < 150, 'symmetric cosine rep → similar phase times');
+  assert.equal(m.liftFirst, false);
+  assert.ok(m.travel > 90 && m.speed > 50 && m.lean !== null && m.gap === null);
+  assert.equal(m.trace[0][0], 0);
+  const arm = (t, top = 170) => { const e = cycle(t, 85, 168, 3); return { elbow: e, raise: 90 + ((e - 85) / 83) * (top - 90) }; };
+  const g = run('press', (t) => front({ left: arm(t), right: { ...arm(t), elbow: arm(t).elbow - 20 } }), 9).events.at(-1).metrics;
+  assert.ok(g.gap >= 15 && g.lean === null && g.liftFirst && g.speed > 50);
 });
